@@ -1,0 +1,34 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.venv/
+env/
+venv/
+
+# Local settings
+.env
+.env.*
+
+# SQLite database files
+*.sqlite3
+
+# Django media and logs
+media/
+logs/
+
+# Static files collected by Django
+staticfiles/
+
+# Test and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE and editor settings
+.vscode/
+*.swp
+*.swo
+.DS_Store
