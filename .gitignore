@@ -1,0 +1,33 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.venv/
+env/
+venv/
+
+# Local settings
+
+# SQLite database files
+*.sqlite3
+
+# Django media and logs
+media/
+logs/
+
+# Static files collected by Django
+staticfiles/
+
+# Test and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE and editor settings
+*.swp
+*.swo
+.DS_Store
+config.bat
+node_modules
