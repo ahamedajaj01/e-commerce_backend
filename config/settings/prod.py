@@ -4,6 +4,7 @@ Extends base.py with production-specific settings.
 """
 
 import os
+from urllib.parse import unquote, urlparse
 from .base import *
 
 # SECURITY WARNING: keep the secret key used in production secret!
@@ -15,16 +16,43 @@ DEBUG = False
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost').split(',')
 
 # Database - PostgreSQL for production
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'allinonenepal_db'),
-        'USER': os.getenv('DB_USER', 'postgres'),
-        'PASSWORD': os.getenv('DB_PASSWORD', ''),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5432'),
+DATABASE_URL = os.getenv('DATABASE_URL')
+if DATABASE_URL:
+    parsed_url = urlparse(DATABASE_URL)
+    db_name = unquote(parsed_url.path[1:]) if parsed_url.path else ''
+    db_user = unquote(parsed_url.username) if parsed_url.username else ''
+    db_password = unquote(parsed_url.password) if parsed_url.password else ''
+    db_host = parsed_url.hostname or ''
+    db_port = parsed_url.port or ''
+
+    db_options = {}
+    db_sslmode = os.getenv('DB_SSLMODE')
+    if db_sslmode:
+        db_options['sslmode'] = db_sslmode
+
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': db_name,
+            'USER': db_user,
+            'PASSWORD': db_password,
+            'HOST': db_host,
+            'PORT': db_port,
+        }
     }
-}
+    if db_options:
+        DATABASES['default']['OPTIONS'] = db_options
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME', 'allinonenepal_db'),
+            'USER': os.getenv('DB_USER', 'postgres'),
+            'PASSWORD': os.getenv('DB_PASSWORD', ''),
+            'HOST': os.getenv('DB_HOST', 'localhost'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+        }
+    }
 
 # Security Settings
 SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'True') == 'True'
