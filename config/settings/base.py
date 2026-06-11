@@ -129,7 +129,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Accept URLs with and without trailing slashes
-APPEND_SLASH = False
+APPEND_SLASH = True
 
 # Custom User Model
 AUTH_USER_MODEL = 'users.User'
