@@ -117,6 +117,10 @@ STORAGES = {
     },
 }
 
+# Ensure compatibility for 3rd party apps
+DEFAULT_FILE_STORAGE = STORAGES["default"]["BACKEND"]
+STATICFILES_STORAGE = STORAGES["staticfiles"]["BACKEND"]
+
 # Logging - More comprehensive in production
 LOGGING = {
     'version': 1,

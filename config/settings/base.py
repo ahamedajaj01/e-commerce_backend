@@ -214,3 +214,7 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+
+# Backward compatibility for 3rd party packages (like Cloudinary)
+DEFAULT_FILE_STORAGE = STORAGES["default"]["BACKEND"]
+STATICFILES_STORAGE = STORAGES["staticfiles"]["BACKEND"]
