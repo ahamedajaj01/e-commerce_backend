@@ -12,7 +12,7 @@ class AdminProductView(APIView):
     
     def get(self, request):
         products = get_backoffice_products()
-        serializer = ProductBackofficeSerializer(products, many=True)
+        serializer = ProductBackofficeSerializer(products, many=True, context={'request': request})
         return success_response(data=serializer.data)
     
     def post(self, request):
@@ -71,7 +71,7 @@ class AdminProductView(APIView):
             add_product_media(product=product, file=img_file, sort_order=idx)
 
         return success_response(
-            data=ProductBackofficeSerializer(product).data,
+            data=ProductBackofficeSerializer(product, context={'request': request}).data,
             status_code=status.HTTP_201_CREATED
         )
 
@@ -82,7 +82,7 @@ class AdminProductDetailView(APIView):
         from core.common.responses.formatters import error_response
         try:
             product = Product.objects.get(id=product_id)
-            return success_response(data=ProductBackofficeSerializer(product).data)
+            return success_response(data=ProductBackofficeSerializer(product, context={'request': request}).data)
         except Product.DoesNotExist:
             return error_response(message="Product not found", status_code=404)
 
@@ -185,7 +185,7 @@ class AdminProductDetailView(APIView):
         for idx, img_file in enumerate(additional_images, start=current_media_count + 1):
             add_product_media(product=updated_product, file=img_file, sort_order=idx)
 
-        return success_response(data=ProductBackofficeSerializer(updated_product).data, message="Product updated")
+        return success_response(data=ProductBackofficeSerializer(updated_product, context={'request': request}).data, message="Product updated")
 
     def delete(self, request, product_id):
         from apps.catalog.models.product import Product

@@ -19,9 +19,20 @@ class VariantSummarySerializer(serializers.ModelSerializer):
 
     def get_product_image(self, obj):
         first_media = obj.product.media.all().first()
-        if first_media:
-            return first_media.file.url
-        return None
+        if not first_media or not first_media.file:
+            return None
+        
+        file_url = first_media.file.url
+        
+        # If it's an absolute cloud URL already (starts with http/https), return it directly
+        if file_url.startswith('http://') or file_url.startswith('https://'):
+            return file_url
+            
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(file_url)
+            
+        return file_url
 
     def get_is_media_product(self, obj):
         return False

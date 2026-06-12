@@ -23,24 +23,23 @@ class ProductMediaSerializer(serializers.ModelSerializer):
     def get_file_url(self, obj):
         """
         Generate full URL for media file.
-        
-        Returns:
-            str: Full URL path to the media file (e.g., '/media/products/media/image.jpg')
-                 or absolute URL if request context is available
+        Safely handles remote cloud storage URLs (Cloudinary/S3) by not prefixing them.
         """
         if not obj.file:
             return None
         
+        file_url = obj.file.url
+        
+        # If it's an absolute cloud URL already (starts with http/https), return it directly
+        if file_url.startswith('http://') or file_url.startswith('https://'):
+            return file_url
+            
         request = self.context.get('request')
-        # Get the relative media path
-        relative_path = obj.file.url
-        
         if request:
-            # Return absolute URL if request context is available
-            return request.build_absolute_uri(relative_path)
-        
-        # Return relative URL otherwise
-        return relative_path
+            return request.build_absolute_uri(file_url)
+            
+        return file_url
+
 
 class ProductVariantSerializer(serializers.ModelSerializer):
     class Meta:

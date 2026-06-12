@@ -30,7 +30,7 @@ class AdminInventoryView(APIView):
         paginated_qs, meta = paginate_queryset(inventory_qs, page=page, page_size=page_size)
         
         # 4. Serialize
-        serialized_data = InventorySerializer(paginated_qs, many=True).data
+        serialized_data = InventorySerializer(paginated_qs, many=True, context={'request': request}).data
         
         return success_response(data={
             "results": serialized_data,
