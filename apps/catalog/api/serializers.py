@@ -75,5 +75,11 @@ class ProductBackofficeSerializer(serializers.ModelSerializer):
             'is_active', 'is_visible', 'variants', 'media', 'created_at'
         ]
 
+    def validate_name(self, value):
+        from django.utils.text import slugify
+        if len(slugify(value)) > 100:
+            raise serializers.ValidationError("Product name is too long. Please shorten it to keep the URL slug small.")
+        return value
+
     def get_media(self, obj):
         return ProductMediaSerializer(obj.media.all(), many=True, context=self.context).data

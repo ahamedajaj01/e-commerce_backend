@@ -4,7 +4,7 @@ from core.common.models.base import BaseModel
 
 class Category(BaseModel):
     name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True, blank=True)
+    slug = models.SlugField(max_length=100, unique=True, blank=True)
     parent = models.ForeignKey(
         'self', 
         on_delete=models.SET_NULL, 
@@ -19,7 +19,7 @@ class Category(BaseModel):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
+            self.slug = slugify(self.name)[:100]
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -33,7 +33,7 @@ class Product(BaseModel):
         related_name='products'
     )
     name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True, blank=True)
+    slug = models.SlugField(max_length=100, unique=True, blank=True)
     description = models.TextField(blank=True)
     base_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     
@@ -52,7 +52,7 @@ class Product(BaseModel):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
+            self.slug = slugify(self.name)[:100]
         super().save(*args, **kwargs)
 
     def __str__(self):
