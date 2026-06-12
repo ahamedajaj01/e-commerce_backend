@@ -3,7 +3,6 @@ from django.core.mail import send_mail
 from django.conf import settings
 
 import logging
-import resend
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +17,7 @@ class EmailOTPProvider(BaseOTPProvider):
         
         if resend_api_key:
             try:
+                import resend
                 resend.api_key = resend_api_key
                 logger.info(f"Attempting to send OTP via Resend to {destination}")
                 resend.Emails.send({

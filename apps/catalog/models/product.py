@@ -32,6 +32,13 @@ class Product(BaseModel):
         null=True, 
         related_name='products'
     )
+    brand = models.ForeignKey(
+        'catalog.Brand',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='products'
+    )
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=100, unique=True, blank=True)
     description = models.TextField(blank=True)

@@ -4,16 +4,82 @@ from core.common.responses.formatters import success_response, error_response
 from apps.users.permissions import IsBackofficeStaff
 from apps.catalog.selectors.product_selectors import get_backoffice_products, get_active_categories
 from apps.catalog.services.product_services import create_product, create_category
-from apps.catalog.api.serializers import ProductBackofficeSerializer, CategorySerializer
+from apps.catalog.api.serializers import ProductBackofficeSerializer, CategorySerializer, BrandSerializer
 from apps.catalog.models.product import Category
+from apps.catalog.models.brand import Brand
+
+class AdminBrandView(APIView):
+    permission_classes = [IsBackofficeStaff]
+    
+    def get(self, request):
+        brands = Brand.objects.all().order_by('name')
+        serializer = BrandSerializer(brands, many=True)
+        return success_response(data=serializer.data)
+
+    def post(self, request):
+        name = request.data.get('name')
+        if not name:
+            return error_response(message="Brand name is required", status_code=400)
+        
+        brand = Brand.objects.create(
+            name=name,
+            description=request.data.get('description', ''),
+            logo=request.FILES.get('logo')
+        )
+        return success_response(data=BrandSerializer(brand).data, status_code=status.HTTP_201_CREATED)
+
+class AdminProductIdsView(APIView):
+    """Returns only IDs of products matching filters for bulk operations."""
+    permission_classes = [IsBackofficeStaff]
+
+    def get(self, request):
+        filters = {
+            'search': request.query_params.get('search'),
+            'category': request.query_params.get('category'),
+            'brand': request.query_params.get('brand'),
+            'min_price': request.query_params.get('min_price'),
+            'max_price': request.query_params.get('max_price'),
+            'stock_status': request.query_params.get('stock_status'),
+        }
+        products_qs = get_backoffice_products(filters=filters)
+        ids = list(products_qs.values_list('id', flat=True))
+        return success_response(data={'ids': ids, 'count': len(ids)})
 
 class AdminProductView(APIView):
     permission_classes = [IsBackofficeStaff]
     
     def get(self, request):
-        products = get_backoffice_products()
-        serializer = ProductBackofficeSerializer(products, many=True, context={'request': request})
-        return success_response(data=serializer.data)
+        # 1. Get query params for filtering
+        filters = {
+            'search': request.query_params.get('search'),
+            'category': request.query_params.get('category'),
+            'brand': request.query_params.get('brand'),
+            'min_price': request.query_params.get('min_price'),
+            'max_price': request.query_params.get('max_price'),
+            'stock_status': request.query_params.get('stock_status'),
+        }
+        
+        # 2. Fetch QuerySet
+        products_qs = get_backoffice_products(filters=filters)
+        
+        # 3. Handle Pagination
+        from core.utils.pagination import paginate_queryset
+        try:
+            page = int(request.query_params.get('page', 1))
+            page_size = int(request.query_params.get('page_size', 20))
+        except (ValueError, TypeError):
+            page = 1
+            page_size = 20
+
+        paginated_qs, meta = paginate_queryset(products_qs, page=page, page_size=page_size)
+        
+        # 4. Serialize
+        serializer = ProductBackofficeSerializer(paginated_qs, many=True, context={'request': request})
+        
+        return success_response(data={
+            "results": serializer.data,
+            "meta": meta
+        })
     
     def post(self, request):
         import json

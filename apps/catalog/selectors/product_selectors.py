@@ -63,6 +63,11 @@ def get_storefront_products(filters: dict = None) -> QuerySet:
         if filters.get('is_trending') == 'true' or filters.get('category_slug') in ['trending', 'shop-by-video', 'shop-the-look']:
             qs = qs.filter(is_trending=True)
         
+        # Brand Filter
+        brand_id = filters.get('brand') or filters.get('brand_id')
+        if brand_id:
+            qs = qs.filter(brand_id=brand_id)
+        
         search_query = filters.get('search')
         if search_query:
             from django.db.models import Q
@@ -73,9 +78,52 @@ def get_storefront_products(filters: dict = None) -> QuerySet:
             
     return qs
 
-def get_backoffice_products() -> QuerySet:
-    """Internal admin query that excludes 'Shadow' media products and hidden items."""
-    return Product.objects.filter(is_visible=True).select_related('category').prefetch_related('variants')
+def get_backoffice_products(filters: dict = None) -> QuerySet:
+    """Internal admin query with optimized filtering and sorting."""
+    qs = Product.objects.filter(is_visible=True).select_related('category', 'brand').prefetch_related('variants', 'media').order_by('-created_at')
+    
+    if not filters:
+        return qs
+
+    # 1. Real-time Search (Name, SKU)
+    search_query = filters.get('search')
+    if search_query:
+        from django.db.models import Q
+        qs = qs.filter(
+            Q(name__icontains=search_query) | 
+            Q(variants__sku__icontains=search_query) |
+            Q(brand__name__icontains=search_query)
+        ).distinct()
+
+    # 2. Category Filter
+    category_id = filters.get('category')
+    if category_id:
+        qs = qs.filter(category_id=category_id)
+
+    # 3. Brand Filter
+    brand_id = filters.get('brand')
+    if brand_id:
+        qs = qs.filter(brand_id=brand_id)
+
+    # 4. Price Range Filter
+    min_price = filters.get('min_price')
+    if min_price:
+        qs = qs.filter(base_price__gte=min_price)
+    
+    max_price = filters.get('max_price')
+    if max_price:
+        qs = qs.filter(base_price__lte=max_price)
+
+    # 5. Stock Status Filter
+    stock_status = filters.get('stock_status')
+    if stock_status == 'in_stock':
+        qs = qs.filter(variants__stock_quantity__gt=0).distinct()
+    elif stock_status == 'out_of_stock':
+        # This is a bit trickier: products where ALL variants have 0 stock
+        from django.db.models import Sum
+        qs = qs.annotate(total_stock=Sum('variants__stock_quantity')).filter(total_stock=0)
+
+    return qs
 
 def get_product_by_slug(slug: str) -> Product:
     return Product.objects.filter(slug=slug, is_active=True).prefetch_related('variants', 'media').first()

@@ -1,5 +1,9 @@
 from django.urls import path
-from .catalog_views import AdminProductView, AdminProductDetailView, AdminCategoryView, AdminCategoryDetailView
+from .catalog_views import (
+    AdminProductView, AdminProductDetailView, 
+    AdminCategoryView, AdminCategoryDetailView,
+    AdminBrandView, AdminProductIdsView
+)
 from .inventory_views import AdminInventoryView, AdminInventoryAdjustmentView, AdminLowStockView
 from .cms_views import (
     AdminAnnouncementView,
@@ -10,9 +14,9 @@ from .cms_views import (
     AdminNavigationItemDetailView,
     AdminHomepageSectionView,
     AdminHomepageSectionDetailView,
-
     AdminPromotionView,
-    AdminPromotionDetailView
+    AdminPromotionDetailView,
+    AdminCollectionView
 )
 
 from .shipping_views import AdminShippingRuleListView, AdminShippingRuleDetailView, AdminShippingRuleToggleView
@@ -22,7 +26,11 @@ app_name = 'backoffice'
 urlpatterns = [
     # Products
     path('products/', AdminProductView.as_view(), name='admin-product-list'),
+    path('products/ids/', AdminProductIdsView.as_view(), name='admin-product-ids'),
     path('products/<uuid:product_id>/', AdminProductDetailView.as_view(), name='admin-product-detail'),
+
+    # Brands
+    path('brands/', AdminBrandView.as_view(), name='admin-brand-list'),
 
     # Categories
     path('categories/', AdminCategoryView.as_view(), name='admin-category-list'),
@@ -45,6 +53,7 @@ urlpatterns = [
 
     path('cms/promotions/', AdminPromotionView.as_view(), name='admin-promotion-list'),
     path('cms/promotions/<uuid:pk>/', AdminPromotionDetailView.as_view(), name='admin-promotion-detail'),
+    path('cms/collections/', AdminCollectionView.as_view(), name='admin-collection-list'),
 
     # Shipping
     path('shipping/rules/', AdminShippingRuleListView.as_view(), name='admin-shipping-rule-list'),

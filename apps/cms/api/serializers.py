@@ -19,25 +19,47 @@ class PromotionSerializer(serializers.ModelSerializer):
     )
     is_visible = serializers.BooleanField(source='is_active', required=False, default=True)
     category_detail = CategorySerializer(source='category', read_only=True)
+    # brand_detail added dynamically in get_brand_detail if needed, 
+    # but we'll use a MethodField for safety if there's an import issue
+    brand_detail = serializers.SerializerMethodField()
 
     class Meta:
         model = Promotion
-        fields = ['id', 'title', 'description', 'cta_text', 'cta_link', 'image', 'category', 'category_detail', 'is_active', 'is_visible', 'products', 'product_ids', 'sort_order']
+        fields = [
+            'id', 'title', 'description', 'cta_text', 'cta_link', 'image', 
+            'category', 'category_detail', 'brand', 'brand_detail',
+            'is_active', 'is_visible', 'products', 'product_ids', 'sort_order'
+        ]
+
+    def get_brand_detail(self, obj):
+        if not obj.brand:
+            return None
+        from apps.catalog.api.serializers import BrandSerializer
+        return BrandSerializer(obj.brand).data
 
     def get_products(self, obj):
         from apps.catalog.selectors.product_selectors import get_storefront_products
         
-        # Use our protected selector instead of raw filter
+        # 1. Start with explicitly assigned products
         explicit_products = list(obj.products.filter(is_active=True))
+        existing_ids = {p.id for p in explicit_products}
+        
+        # 2. Add products from targeted category
         if obj.category:
             cat_products = get_storefront_products({'category_id': obj.category.id})
-            existing_ids = {p.id for p in explicit_products}
             for p in cat_products:
                 if p.id not in existing_ids:
                     explicit_products.append(p)
                     existing_ids.add(p.id)
         
-        # Apply global trending/new filters to explicit products too
+        # 3. Add products from targeted brand
+        if obj.brand:
+            brand_products = get_storefront_products({'brand': obj.brand.id})
+            for p in brand_products:
+                if p.id not in existing_ids:
+                    explicit_products.append(p)
+                    existing_ids.add(p.id)
+        
         return ProductStorefrontSerializer(explicit_products, many=True).data
 
     def create(self, validated_data):

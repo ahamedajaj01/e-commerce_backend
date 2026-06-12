@@ -11,6 +11,19 @@ Supports a nested parent-child hierarchy to organize fashion items (e.g., `Women
 
 **Fields:** `id`, `name`, `slug` (auto-generated), `parent`, `children`, `is_active`.
 
+---
+
+## Brand
+Manages brand identities for products.
+
+**Fields:** `id`, `name`, `slug`, `logo`, `description`, `is_active`.
+
+### Backoffice API
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/backoffice/brands` | List all brands |
+| POST | `/api/v1/backoffice/brands` | Create a brand |
+
 ### Storefront API
 
 | Method | Endpoint | Description |
@@ -44,7 +57,21 @@ Supports a nested parent-child hierarchy to organize fashion items (e.g., `Women
 
 The base conceptual entity for a sellable item. Products hold the general information. Actual stock and pricing live in Variants.
 
-**Fields:** `id`, `name`, `slug`, `description`, `base_price`, `category`, `material`, `sleeve`, `length`, `neck_line`, `fit`, `is_featured`, `is_new`, `is_trending`, `is_active`, `is_visible`, `variants`, `media`.
+**Fields:** `id`, `name`, `slug`, `brand`, `description`, `base_price`, `category`, `material`, `sleeve`, `length`, `neck_line`, `fit`, `is_featured`, `is_new`, `is_trending`, `is_active`, `is_visible`, `variants`, `media`.
+
+### Backoffice Filtering & Search
+The Backoffice product list supports advanced filtering for bulk operations and studio management.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `search` | string | Search by name, SKU, or brand name |
+| `category` | UUID | Filter by specific category ID |
+| `brand` | UUID | Filter by specific brand ID |
+| `min_price` | decimal | Minimum base price |
+| `max_price` | decimal | Maximum base price |
+| `stock_status` | enum | `in_stock` or `out_of_stock` |
+| `page` | int | Page number (default: 1) |
+| `page_size` | int | Results per page (default: 20) |
 
 #### Product Visibility Override (Exclusive Collections)
 - **`is_visible`**: A toggle to hide products from the main store or site search. If set to `False` (Hidden), the product is excluded from general discovery but can still be manually assigned to exclusive Homepage Collections or Promotional Campaigns and remains fully purchasable.
@@ -74,10 +101,12 @@ The `Product` model natively stores apparel constraints out of the box:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/backoffice/products` | List all products (including draft) |
+| GET | `/api/v1/backoffice/products` | Paginated product list with filters |
+| GET | `/api/v1/backoffice/products/ids` | List of UUIDs matching current filters |
 | POST | `/api/v1/backoffice/products` | Create a product |
 | PATCH | `/api/v1/backoffice/products/{id}` | Edit a product |
 | DELETE | `/api/v1/backoffice/products/{id}` | Delete a product |
+| GET | `/api/v1/backoffice/cms/collections` | List active homepage sections/collections |
 
 **Create / Edit Payload (multipart/form-data):**
 ```text

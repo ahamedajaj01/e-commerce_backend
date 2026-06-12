@@ -244,3 +244,16 @@ class AdminPromotionDetailView(APIView):
             return success_response(data={"success": True}, status_code=status.HTTP_204_NO_CONTENT)
         except Promotion.DoesNotExist:
             return error_response("Promotion not found", status_code=status.HTTP_404_NOT_FOUND)
+
+class AdminCollectionView(APIView):
+    """Metadata endpoint for sections/collections."""
+    permission_classes = [IsBackofficeStaff]
+    
+    def get(self, request):
+        sections = HomepageSection.objects.filter(is_active=True).order_by('sort_order')
+        data = [{
+            "id": str(s.id),
+            "title": s.title,
+            "type": s.get_section_type_display()
+        } for s in sections]
+        return success_response(data=data)

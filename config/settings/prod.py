@@ -7,6 +7,10 @@ import os
 from urllib.parse import unquote, urlparse
 from .base import *
 
+# Add Cloudinary apps for production storage
+INSTALLED_APPS.insert(INSTALLED_APPS.index('django.contrib.staticfiles'), 'cloudinary_storage')
+INSTALLED_APPS.append('cloudinary')
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', 'change-this-secret-key-in-production')
 
@@ -101,16 +105,19 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Media Storage Strategy
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
+try:
+    import cloudinary
+    import cloudinary.uploader
+    import cloudinary.api
 
-cloudinary.config( 
-  cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME'), 
-  api_key = os.getenv('CLOUDINARY_API_KEY'), 
-  api_secret = os.getenv('CLOUDINARY_API_SECRET'),
-  secure = True
-)
+    cloudinary.config( 
+        cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME'), 
+        api_key = os.getenv('CLOUDINARY_API_KEY'), 
+        api_secret = os.getenv('CLOUDINARY_API_SECRET'),
+        secure = True
+    )
+except ImportError:
+    pass
 
 # Cloudinary Storage Configuration (for django-cloudinary-storage)
 CLOUDINARY_STORAGE = {

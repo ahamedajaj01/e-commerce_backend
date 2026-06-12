@@ -15,6 +15,13 @@ class Promotion(BaseModel):
         null=True,
         blank=True
     )
+    brand = models.ForeignKey(
+        'catalog.Brand',
+        on_delete=models.SET_NULL,
+        related_name='promotions',
+        null=True,
+        blank=True
+    )
     products = models.ManyToManyField(
         'catalog.Product',
         related_name='promotions',
