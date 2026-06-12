@@ -121,6 +121,9 @@ STORAGES = {
 DEFAULT_FILE_STORAGE = STORAGES["default"]["BACKEND"]
 STATICFILES_STORAGE = STORAGES["staticfiles"]["BACKEND"]
 
+# WhiteNoise settings
+WHITENOISE_MANIFEST_STRICT = False
+
 # Logging - More comprehensive in production
 LOGGING = {
     'version': 1,
