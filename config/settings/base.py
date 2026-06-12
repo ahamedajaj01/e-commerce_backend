@@ -19,6 +19,9 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
+# Resend API Key
+RESEND_API_KEY = os.getenv('RESEND_API_KEY')
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',

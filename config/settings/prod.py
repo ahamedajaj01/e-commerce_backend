@@ -78,9 +78,7 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@allinonenepal.com')
 
 # Email provider selection for API-based email services
-EMAIL_PROVIDER = os.getenv('EMAIL_PROVIDER', 'smtp')
-SENDCOREZX_API_KEY = os.getenv('SENDCOREZX_API_KEY', '')
-SENDCOREZX_API_URL = os.getenv('SENDCOREZX_API_URL', 'https://api.sendcorezx.com/send')
+EMAIL_PROVIDER = os.getenv('EMAIL_PROVIDER', 'resend')
 
 # CORS - Strict in production
 CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'https://allinonenepal.com').split(',')

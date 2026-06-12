@@ -41,3 +41,4 @@ psycopg[binary]
 whitenoise==6.5.0
 gunicorn
 uvicorn
+resend==2.30.1
