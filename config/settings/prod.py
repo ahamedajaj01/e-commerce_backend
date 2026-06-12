@@ -100,6 +100,23 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# Cloudinary Storage Configuration
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET')
+}
+
+# Media Storage Strategy
+STORAGES = {
+    "default": {
+        "BACKEND": os.getenv('MEDIA_STORAGE_BACKEND', 'cloudinary_storage.storage.MediaCloudinaryStorage'),
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
 # Logging - More comprehensive in production
 LOGGING = {
     'version': 1,
