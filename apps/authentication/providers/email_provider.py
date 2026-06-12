@@ -31,40 +31,72 @@ class EmailOTPProvider(BaseOTPProvider):
     def _send_sendcorex_email(self, destination: str, subject: str, message: str) -> bool:
         api_url = getattr(settings, 'SENDCOREZX_API_URL', '')
         api_key = getattr(settings, 'SENDCOREZX_API_KEY', '')
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@example.com')
         if not api_url or not api_key:
             logger.error("Sendcorex email config missing: URL or API key")
             return False
 
-        payload = {
-            'personalizations': [
-                {
-                    'to': [{'email': destination}],
-                    'subject': subject,
-                }
-            ],
-            'from': {'email': getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@example.com')},
-            'content': [
-                {
-                    'type': 'text/plain',
-                    'value': message,
-                }
-            ],
-        }
         headers = {
             'Authorization': f'Bearer {api_key}',
+            'X-API-Key': api_key,
             'Content-Type': 'application/json',
         }
 
-        try:
-            response = requests.post(api_url, json=payload, headers=headers, timeout=10)
-            if not response.ok:
+        payload_candidates = [
+            {
+                'personalizations': [
+                    {
+                        'to': [{'email': destination}],
+                        'subject': subject,
+                    }
+                ],
+                'from': {'email': from_email},
+                'content': [
+                    {
+                        'type': 'text/plain',
+                        'value': message,
+                    }
+                ],
+            },
+            {
+                'to': destination,
+                'from': from_email,
+                'subject': subject,
+                'message': message,
+            },
+            {
+                'recipients': [destination],
+                'sender': from_email,
+                'subject': subject,
+                'content': message,
+            },
+            {
+                'recipient': destination,
+                'sender': from_email,
+                'subject': subject,
+                'content': message,
+            },
+            {
+                'email': destination,
+                'from': from_email,
+                'subject': subject,
+                'text': message,
+            },
+        ]
+
+        for payload in payload_candidates:
+            try:
+                response = requests.post(api_url, json=payload, headers=headers, timeout=10)
+                if response.ok:
+                    return True
                 logger.error(
-                    "Sendcorex email send failed: %s %s %s",
+                    "Sendcorex email send failed (format=%s): %s %s %s",
+                    payload.get('subject', 'unknown'),
                     response.status_code,
                     response.text,
                     payload,
                 )
-            return response.ok
-        except Exception as exc:
-            logger.exception("Sendcorex email request exception")
-            return False
+            except Exception:
+                logger.exception("Sendcorex email request exception")
+
+        return False
