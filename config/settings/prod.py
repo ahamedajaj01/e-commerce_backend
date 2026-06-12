@@ -113,7 +113,7 @@ STORAGES = {
         "BACKEND": os.getenv('MEDIA_STORAGE_BACKEND', 'cloudinary_storage.storage.MediaCloudinaryStorage'),
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
 
