@@ -48,7 +48,7 @@ class ProductVariantSerializer(serializers.ModelSerializer):
 
 class ProductStorefrontSerializer(serializers.ModelSerializer):
     variants = ProductVariantSerializer(many=True, read_only=True)
-    media = ProductMediaSerializer(many=True, read_only=True)
+    media = serializers.SerializerMethodField()
     category = serializers.StringRelatedField()
 
     class Meta:
@@ -59,9 +59,12 @@ class ProductStorefrontSerializer(serializers.ModelSerializer):
             'is_visible', 'variants', 'media'
         ]
 
+    def get_media(self, obj):
+        return ProductMediaSerializer(obj.media.all(), many=True, context=self.context).data
+
 class ProductBackofficeSerializer(serializers.ModelSerializer):
     variants = ProductVariantSerializer(many=True, read_only=True)
-    media = ProductMediaSerializer(many=True, read_only=True)
+    media = serializers.SerializerMethodField()
     category_detail = CategorySerializer(source='category', read_only=True)
 
     class Meta:
@@ -71,3 +74,6 @@ class ProductBackofficeSerializer(serializers.ModelSerializer):
             'material', 'sleeve', 'length', 'neck_line', 'fit',
             'is_active', 'is_visible', 'variants', 'media', 'created_at'
         ]
+
+    def get_media(self, obj):
+        return ProductMediaSerializer(obj.media.all(), many=True, context=self.context).data

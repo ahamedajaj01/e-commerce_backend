@@ -119,7 +119,7 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
     'SECURE': True,
     'MAGIC_FILE_PATH': True,
-    'PREFIX': os.getenv('MEDIA_URL', 'media/')
+    'PREFIX': 'media'
 }
 
 STORAGES = {
