@@ -10,14 +10,19 @@ from django.dispatch import receiver
 from django.db import models
 
 
-def _delete_file(path: str):
-    """Remove a file from disk if it actually exists."""
-    if path:
-        try:
-            if os.path.isfile(path):
-                os.remove(path)
-        except Exception:
-            pass  # silently ignore permission or race-condition errors
+def _delete_file(file_field):
+    """Safely delete a file from its storage backend."""
+    if not file_field:
+        return
+        
+    try:
+        # Use storage.delete() instead of os.remove() to support both local and cloud storage
+        # This prevents "NotImplementedError: This backend doesn't support absolute paths."
+        storage = file_field.storage
+        if file_field.name:
+            storage.delete(file_field.name)
+    except Exception:
+        pass  # silently ignore errors
 
 
 def _get_file_fields(instance):
@@ -33,7 +38,7 @@ def _get_file_fields(instance):
 
 @receiver(post_delete, sender='catalog.ProductMedia')
 def delete_product_media_file(sender, instance, **kwargs):
-    _delete_file(instance.file.path if instance.file else None)
+    _delete_file(instance.file)
 
 
 @receiver(pre_save, sender='catalog.ProductMedia')
@@ -46,14 +51,14 @@ def replace_product_media_file(sender, instance, **kwargs):
     except sender.DoesNotExist:
         return
     if old.file and old.file != instance.file:
-        _delete_file(old.file.path)
+        _delete_file(old.file)
 
 
 # ── CMS: Banner ───────────────────────────────────────────────────────────────
 
 @receiver(post_delete, sender='cms.Banner')
 def delete_banner_file(sender, instance, **kwargs):
-    _delete_file(instance.image.path if instance.image else None)
+    _delete_file(instance.image)
 
 
 @receiver(pre_save, sender='cms.Banner')
@@ -65,14 +70,14 @@ def replace_banner_file(sender, instance, **kwargs):
     except sender.DoesNotExist:
         return
     if old.image and old.image != instance.image:
-        _delete_file(old.image.path)
+        _delete_file(old.image)
 
 
 # ── CMS: Promotion ────────────────────────────────────────────────────────────
 
 @receiver(post_delete, sender='cms.Promotion')
 def delete_promotion_file(sender, instance, **kwargs):
-    _delete_file(instance.image.path if instance.image else None)
+    _delete_file(instance.image)
 
 
 @receiver(pre_save, sender='cms.Promotion')
@@ -84,4 +89,4 @@ def replace_promotion_file(sender, instance, **kwargs):
     except sender.DoesNotExist:
         return
     if old.image and old.image != instance.image:
-        _delete_file(old.image.path)
+        _delete_file(old.image)
