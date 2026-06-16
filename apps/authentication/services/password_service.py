@@ -92,19 +92,11 @@ class PasswordService:
         if not is_valid:
             return {'success': False, 'message': 'Invalid or expired reset code.', 'reset_token': None}
 
-        # Generate a secure one-time reset token
-        reset_token = str(uuid.uuid4())
+        # Generate a secure one-time reset token in DB
+        from ..models.password_reset import PasswordResetToken
+        reset_token_obj = PasswordResetToken.create_for_user(user)
 
-        # Store token on user (we'll use the cache or a lightweight approach)
-        # Using Django's cache framework for token storage
-        from django.core.cache import cache
-        cache_key = f'password_reset_{reset_token}'
-        cache.set(cache_key, {
-            'user_id': str(user.id),
-            'email': email,
-        }, timeout=900)  # 15 minutes expiry
-
-        return {'success': True, 'message': 'Code verified successfully.', 'reset_token': reset_token}
+        return {'success': True, 'message': 'Code verified successfully.', 'reset_token': reset_token_obj.token}
 
     # ──────────────────────────────────────────────
     # 4. RESET PASSWORD (with token)
@@ -113,17 +105,17 @@ class PasswordService:
         """
         Set a new password using the verified reset token.
         """
-        from django.core.cache import cache
-        cache_key = f'password_reset_{reset_token}'
-        token_data = cache.get(cache_key)
-
-        if not token_data:
+        from ..models.password_reset import PasswordResetToken
+        
+        try:
+            token_obj = PasswordResetToken.objects.get(token=reset_token)
+        except PasswordResetToken.DoesNotExist:
             return {'success': False, 'message': 'Invalid or expired reset token. Please request a new code.'}
 
-        try:
-            user = User.objects.get(id=token_data['user_id'], is_active=True)
-        except User.DoesNotExist:
-            return {'success': False, 'message': 'User account not found.'}
+        if not token_obj.is_valid():
+            return {'success': False, 'message': 'Reset token has expired or already been used.'}
+
+        user = token_obj.user
 
         # Validate new password
         try:
@@ -135,6 +127,7 @@ class PasswordService:
         user.save(update_fields=['password'])
 
         # Invalidate the token immediately so it can't be reused
-        cache.delete(cache_key)
+        token_obj.is_used = True
+        token_obj.save()
 
         return {'success': True, 'message': 'Password has been reset successfully. You can now log in.'}
