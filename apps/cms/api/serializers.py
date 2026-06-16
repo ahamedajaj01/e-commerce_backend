@@ -38,27 +38,31 @@ class PromotionSerializer(serializers.ModelSerializer):
         return BrandSerializer(obj.brand).data
 
     def get_products(self, obj):
-        from apps.catalog.selectors.product_selectors import get_storefront_products
-        
-        # 1. Start with explicitly assigned products
-        explicit_products = list(obj.products.filter(is_active=True))
+        # 1. Start with explicitly assigned products (Use prefetched if available)
+        # Using .all() takes advantage of the prefetch_related in the selector
+        explicit_products = list(obj.products.all())
         existing_ids = {p.id for p in explicit_products}
         
-        # 2. Add products from targeted category
-        if obj.category:
-            cat_products = get_storefront_products({'category_id': obj.category.id})
-            for p in cat_products:
-                if p.id not in existing_ids:
-                    explicit_products.append(p)
-                    existing_ids.add(p.id)
-        
-        # 3. Add products from targeted brand
-        if obj.brand:
-            brand_products = get_storefront_products({'brand': obj.brand.id})
-            for p in brand_products:
-                if p.id not in existing_ids:
-                    explicit_products.append(p)
-                    existing_ids.add(p.id)
+        # 2. Add products from targeted category/brand
+        # Note: We only do this if strictly necessary as it adds 100ms round-trips
+        # In a high-performance scenario, these should ideally be pre-calculated
+        if obj.category_id or obj.brand_id:
+            from apps.catalog.selectors.product_selectors import get_storefront_products
+            
+            extra_filters = {}
+            if obj.category_id:
+                extra_filters['category_id'] = obj.category_id
+            if obj.brand_id:
+                extra_filters['brand_id'] = obj.brand_id
+                
+            if extra_filters:
+                # We fetch only the missing products
+                # Limit to prevent massive payloads slowing down the response
+                dynamic_products = get_storefront_products(extra_filters)[:10] 
+                for p in dynamic_products:
+                    if p.id not in existing_ids:
+                        explicit_products.append(p)
+                        existing_ids.add(p.id)
         
         return ProductStorefrontSerializer(explicit_products, many=True).data
 

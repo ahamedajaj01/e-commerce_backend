@@ -42,6 +42,8 @@ if DATABASE_URL:
             'PASSWORD': db_password,
             'HOST': db_host,
             'PORT': db_port,
+            'CONN_MAX_AGE': 60,  # Keep connections alive for 60 seconds
+            'CONN_HEALTH_CHECKS': True, # Check if connection is alive before using
         }
     }
     if db_options:
@@ -55,6 +57,7 @@ else:
             'PASSWORD': os.getenv('DB_PASSWORD', ''),
             'HOST': os.getenv('DB_HOST', 'localhost'),
             'PORT': os.getenv('DB_PORT', '5432'),
+            'CONN_MAX_AGE': 60,
         }
     }
 
@@ -153,25 +156,17 @@ STATICFILES_STORAGE = STORAGES["staticfiles"]["BACKEND"]
 # WhiteNoise settings
 WHITENOISE_MANIFEST_STRICT = False
 
-# Logging - More comprehensive in production
+# Logging - Console only for production (Render recommendation)
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'format': '{levelname} {asctime} {module} {message}',
             'style': '{',
         },
     },
     'handlers': {
-        'file': {
-            'level': 'WARNING',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
-            'maxBytes': 1024 * 1024 * 10,  # 10MB
-            'backupCount': 10,
-            'formatter': 'verbose',
-        },
         'console': {
             'level': 'WARNING',
             'class': 'logging.StreamHandler',
@@ -179,7 +174,7 @@ LOGGING = {
         },
     },
     'root': {
-        'handlers': ['console', 'file'],
+        'handlers': ['console'],
         'level': 'WARNING',
     },
 }

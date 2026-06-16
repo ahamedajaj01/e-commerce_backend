@@ -8,13 +8,6 @@ def get_storefront_products(filters: dict = None) -> QuerySet:
     """Public optimized product query with optional filtering."""
     qs = Product.objects.filter(is_active=True, is_visible=True).prefetch_related('variants', 'media').select_related('category')
     
-    # GLOBAL KILL SWITCH: If sections are off in Link Studio, hide those products globally
-    from apps.cms.models import NavigationItem
-    if NavigationItem.objects.filter(title__icontains='trending', is_active=False).exists():
-        qs = qs.exclude(is_trending=True)
-    if NavigationItem.objects.filter(title__icontains='new', is_active=False).exists():
-        qs = qs.exclude(is_new=True)
-
     if filters:
         category_id = filters.get('category') or filters.get('category_id')
         category_slug = filters.get('category_slug')

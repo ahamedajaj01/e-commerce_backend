@@ -14,9 +14,14 @@ class CartItemSerializer(serializers.ModelSerializer):
         fields = ['id', 'variant', 'product_name', 'thumbnail', 'quantity', 'subtotal']
 
     def get_thumbnail(self, obj):
-        first_media = obj.variant.product.media.first()
-        if first_media:
-            return first_media.file.url
+        # We rely on the selector prefetching variant__product__media correctly
+        try:
+            # Avoid .first() which might trigger a new query; use indexing on the prefetched list
+            media_list = list(obj.variant.product.media.all())
+            if media_list:
+                return media_list[0].file.url
+        except (AttributeError, IndexError):
+            pass
         return None
 
 class CartSerializer(serializers.ModelSerializer):

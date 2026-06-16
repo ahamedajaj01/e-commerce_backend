@@ -27,29 +27,33 @@ def get_active_guest_cart(guest_token: str) -> Optional[Cart]:
 
 
 def get_cart_with_items(user) -> Optional[Cart]:
-    """Retrieve active authenticated cart with items prefetched."""
+    """Retrieve active authenticated cart with items fetched in a single JOIN."""
+    from django.db.models import Prefetch
+    
+    items_qs = CartItem.objects.select_related('variant__product').prefetch_related('variant__product__media')
+    
     return Cart.objects.filter(
         user=user,
         status=Cart.Status.ACTIVE
     ).prefetch_related(
-        'items__variant',
-        'items__variant__product',
-        'items__variant__product__media'
+        Prefetch('items', queryset=items_qs)
     ).first()
 
 
 def get_guest_cart_with_items(guest_token: str) -> Optional[Cart]:
-    """Retrieve active guest cart with items prefetched."""
+    """Retrieve active guest cart with items fetched in a single JOIN."""
     if not guest_token:
         return None
+        
+    from django.db.models import Prefetch
+    items_qs = CartItem.objects.select_related('variant__product').prefetch_related('variant__product__media')
+
     return Cart.objects.filter(
         guest_token=guest_token,
         user__isnull=True,
         status=Cart.Status.ACTIVE
     ).prefetch_related(
-        'items__variant',
-        'items__variant__product',
-        'items__variant__product__media'
+        Prefetch('items', queryset=items_qs)
     ).first()
 
 

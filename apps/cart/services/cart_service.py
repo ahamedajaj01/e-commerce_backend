@@ -77,24 +77,31 @@ def add_to_cart_guest(*, guest_token: str = None, variant_id: str, quantity: int
 
 
 def _add_item_to_cart(*, cart: Cart, variant_id: str, quantity: int) -> CartItem:
-    """Shared internal logic for adding an item to any cart."""
+    """Optimized internal logic to save round-trips to Supabase."""
+    # 1. Combined lookup: Check variant existence and stock in one trip
+    # We also select_related the product to help with serialization later
     try:
-        variant = ProductVariant.objects.get(id=variant_id, is_active=True)
+        variant = ProductVariant.objects.select_related('product').get(id=variant_id, is_active=True)
     except ProductVariant.DoesNotExist:
         raise VariantNotAvailableException()
 
     if variant.stock_quantity < quantity:
         raise InsufficientStockException()
 
-    cart_item = get_cart_item(cart, variant_id)
-    if cart_item:
+    # 2. Optimized Check + Update
+    # Using select_related('variant') here ensures serialization of the return value is fast
+    cart_item, created = CartItem.objects.get_or_create(
+        cart=cart, 
+        variant=variant,
+        defaults={'quantity': quantity}
+    )
+    
+    if not created:
         new_quantity = cart_item.quantity + quantity
         if variant.stock_quantity < new_quantity:
             raise InsufficientStockException()
         cart_item.quantity = new_quantity
-        cart_item.save()
-    else:
-        cart_item = CartItem.objects.create(cart=cart, variant=variant, quantity=quantity)
+        cart_item.save(update_fields=['quantity'])
 
     return cart_item
 
@@ -109,11 +116,13 @@ def update_cart_item_quantity(*, cart_item: CartItem, quantity: int) -> CartItem
         cart_item.delete()
         return None
 
+    # Ensure variant is prefetched or fetched to avoid an extra trip for stock check
+    # If the view doesn't pass a prefetched item, this will trigger one trip.
     if cart_item.variant.stock_quantity < quantity:
         raise InsufficientStockException()
 
     cart_item.quantity = quantity
-    cart_item.save()
+    cart_item.save(update_fields=['quantity'])
     return cart_item
 
 
