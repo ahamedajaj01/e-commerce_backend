@@ -28,7 +28,7 @@ class PromotionSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'description', 'cta_text', 'cta_link', 'image', 
             'category', 'category_detail', 'brand', 'brand_detail',
-            'is_active', 'is_visible', 'products', 'product_ids', 'sort_order'
+            'promotion_type', 'is_active', 'is_visible', 'products', 'product_ids', 'sort_order'
         ]
 
     def get_brand_detail(self, obj):

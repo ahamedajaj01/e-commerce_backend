@@ -206,10 +206,16 @@ class AdminPromotionView(APIView):
     permission_classes = [IsBackofficeStaff]
     
     def get(self, request):
+        promotion_type = request.query_params.get('type')
         promotions = Promotion.objects.all().prefetch_related(
             'products__media',
             'products__variants'
-        ).order_by('sort_order')
+        )
+        
+        if promotion_type:
+            promotions = promotions.filter(promotion_type=promotion_type.upper())
+            
+        promotions = promotions.order_by('sort_order')
         serializer = PromotionSerializer(promotions, many=True)
         return success_response(data=serializer.data)
     

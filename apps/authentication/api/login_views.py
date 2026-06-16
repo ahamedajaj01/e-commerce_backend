@@ -48,8 +48,19 @@ class LoginView(APIView):
 
                 return response
 
+            # If authentication fails, find out why to be more helpful
+            from apps.users.models import User
+            email = serializer.validated_data.get('email')
+            user_exists = User.objects.filter(email=email).exists()
+            
+            if not user_exists:
+                return error_response(
+                    message="No account found with this email. Please sign up.",
+                    status_code=status.HTTP_404_NOT_FOUND
+                )
+
             return error_response(
-                message="Invalid credentials or unverified email.",
+                message="Invalid password or unverified email.",
                 status_code=status.HTTP_401_UNAUTHORIZED
             )
         return error_response(message="Validation failed", data=serializer.errors)

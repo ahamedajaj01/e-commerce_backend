@@ -26,5 +26,8 @@ def get_homepage_sections() -> QuerySet:
 def get_promotion_by_id(promo_id: str) -> Promotion:
     return Promotion.objects.filter(id=promo_id, is_active=True).first()
 
-def get_active_promotions() -> QuerySet:
-    return Promotion.objects.filter(is_active=True).order_by('sort_order')
+def get_active_promotions(filters: dict = None) -> QuerySet:
+    qs = Promotion.objects.filter(is_active=True)
+    if filters and filters.get('type'):
+        qs = qs.filter(promotion_type=filters.get('type').upper())
+    return qs.order_by('sort_order')

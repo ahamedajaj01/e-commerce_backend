@@ -9,7 +9,13 @@ The Marketing Studio allows admins to create and manage time-limited promotions,
 
 A **Promotion** represents a marketing event (e.g., "Dashain Sale" or "Summer Collection").
 
-**Fields:** `id`, `title`, `description`, `image`, `cta_text`, `cta_link`, `is_active`, `sort_order`.
+**Fields:** `id`, `title`, `description`, `image`, `cta_text`, `cta_link`, `promotion_type`, `is_active`, `sort_order`.
+
+### Promotion Types
+The `promotion_type` field categorizes how a promotion is displayed:
+- `CAMPAIGN`: Standard marketing campaigns (Default).
+- `BANNER`: High-visibility visual banners.
+- `EXCLUSIVE`: System-exclusive events not normally visible in main feeds.
 
 ### Targeting Scopes (Rule-Based)
 To support large-scale campaigns, Promotions can target products via three mechanisms:
@@ -29,7 +35,7 @@ To support large-scale campaigns, Promotions can target products via three mecha
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/backoffice/cms/promotions` | List all promotions |
+| GET | `/api/v1/backoffice/cms/promotions` | List all promotions. Filter with `?type=BANNER\|CAMPAIGN\|EXCLUSIVE` |
 | GET | `/api/v1/backoffice/products/ids` | Bulk ID fetcher (for mass selection) |
 | GET | `/api/v1/backoffice/brands` | Brand metadata |
 | GET | `/api/v1/backoffice/cms/collections` | Section metadata |
@@ -38,7 +44,7 @@ To support large-scale campaigns, Promotions can target products via three mecha
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/storefront/promotions` | List active campaigns with their targeted products |
+| GET | `/api/v1/storefront/promotions` | List active campaigns. Filter with `?type=BANNER\|CAMPAIGN\|EXCLUSIVE` |
 
 ---
 

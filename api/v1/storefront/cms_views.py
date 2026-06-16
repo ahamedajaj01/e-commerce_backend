@@ -55,7 +55,8 @@ class PromotionListView(APIView):
     permission_classes = []
 
     def get(self, request):
-        promotions = get_active_promotions()
+        filters = {'type': request.query_params.get('type')}
+        promotions = get_active_promotions(filters=filters)
         serializer = PromotionSerializer(promotions, many=True)
         return success_response(data=serializer.data)
 

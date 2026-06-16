@@ -27,6 +27,12 @@ class Promotion(BaseModel):
         related_name='promotions',
         blank=True
     )
+    TYPE_CHOICES = (
+        ('BANNER', 'Visual Banner'),
+        ('CAMPAIGN', 'Marketing Campaign'),
+        ('EXCLUSIVE', 'System Exclusive'),
+    )
+    promotion_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='CAMPAIGN')
     sort_order = models.PositiveIntegerField(default=0)
 
     class Meta:

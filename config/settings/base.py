@@ -98,6 +98,8 @@ AUTHENTICATION_BACKENDS = [
     'apps.users.backends.EmailBackend',
 ]
 
+LOGIN_URL = '/login'
+
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {

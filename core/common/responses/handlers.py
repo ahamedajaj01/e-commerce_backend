@@ -34,6 +34,14 @@ def global_exception_handler(exc, context):
                 "message": message,
             }
         }
+        
+        # Add a redirect hint for 401/403 errors so frontend knows where to send user
+        if response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]:
+            from django.conf import settings
+            # We provide a hint. For staff-only errors, we might want to hint at a different page
+            # but for now a general /login hint is the safest standard.
+            login_url = getattr(settings, 'LOGIN_URL', '/login')
+            response.data["error"]["login_hint"] = login_url
     else:
         # For unhandled exceptions (Server errors)
         logger.error(f"Unhandled Exception: {str(exc)}", exc_info=True)
