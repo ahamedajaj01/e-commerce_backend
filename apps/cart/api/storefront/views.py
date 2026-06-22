@@ -1,5 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework import status
+from django.conf import settings
 from core.common.responses.formatters import success_response, error_response
 from ...selectors.cart_selectors import get_cart_with_items, get_guest_cart_with_items
 from ...services.cart_service import (
@@ -22,13 +23,14 @@ def _get_guest_token(request) -> str:
 
 def _set_guest_cookie(response, token: str):
     """Write the guest cart token to a secure, SameSite cookie."""
+    is_secure = not settings.DEBUG
     response.set_cookie(
         GUEST_TOKEN_COOKIE,
         str(token),
         max_age=60 * 60 * 24 * 30,  # 30 days in seconds
         httponly=True,
         samesite='Lax',
-        secure=False,  # Set True in production (HTTPS)
+        secure=is_secure,
     )
 
 
