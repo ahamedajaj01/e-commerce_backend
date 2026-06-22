@@ -163,6 +163,23 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
 CORS_ALLOW_CREDENTIALS = True
 
+# Expose X-Guest-Token so the browser can read it from responses (guest cart fallback)
+CORS_EXPOSE_HEADERS = ['X-Guest-Token']
+
+# Allow X-Guest-Token to be sent by the client in cross-origin requests
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'x-guest-token',  # Guest cart token fallback for cross-origin environments
+]
+
 # Logging
 LOGGING = {
     'version': 1,

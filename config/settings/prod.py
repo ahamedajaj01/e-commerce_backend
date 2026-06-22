@@ -90,6 +90,23 @@ EMAIL_PROVIDER = os.getenv('EMAIL_PROVIDER', 'resend')
 # CORS - Strict in production
 CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'https://allinonenepal.com').split(',')
 
+# Expose X-Guest-Token so the browser can read it from responses (guest cart fallback)
+CORS_EXPOSE_HEADERS = ['X-Guest-Token']
+
+# Allow X-Guest-Token to be sent by the client in cross-origin requests
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'x-guest-token',  # Guest cart token fallback for cross-origin environments
+]
+
 # Cache - Redis for production
 REDIS_URL = os.getenv('REDIS_URL')
 if REDIS_URL:

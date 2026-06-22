@@ -15,23 +15,42 @@ from ...services.cart_service import (
 from .serializers import CartSerializer, AddToCartSerializer, UpdateCartItemSerializer, CartItemSerializer
 from ...models.cart_item import CartItem
 
+# Header name used as a fallback for cross-origin environments where cookies are blocked
+GUEST_TOKEN_HEADER = 'HTTP_X_GUEST_TOKEN'
 
-def _get_guest_token(request) -> str:
-    """Read the guest cart token from the request cookie."""
-    return request.COOKIES.get(GUEST_TOKEN_COOKIE)
+
+def _get_guest_token(request) -> str | None:
+    """
+    Read the guest cart token.
+    Priority: Cookie → X-Guest-Token request header.
+    The header fallback is critical in cross-origin production environments
+    (e.g. Vercel frontend + Render backend) where SameSite cookies may be
+    blocked by the browser or not forwarded by the client.
+    """
+    return request.COOKIES.get(GUEST_TOKEN_COOKIE) or request.META.get(GUEST_TOKEN_HEADER)
 
 
 def _set_guest_cookie(response, token: str):
-    """Write the guest cart token to a secure, SameSite cookie."""
+    """
+    Write the guest cart token cookie.
+    Uses SameSite=None so the cookie is sent in cross-origin requests (required
+    for a separate frontend domain). SameSite=None mandates Secure=True, which
+    is always true in production (HTTPS). In local dev (DEBUG=True) we fall back
+    to SameSite=Lax so it works without HTTPS.
+    """
     is_secure = not settings.DEBUG
+    samesite = 'None' if is_secure else 'Lax'
     response.set_cookie(
         GUEST_TOKEN_COOKIE,
         str(token),
-        max_age=60 * 60 * 24 * 30,  # 30 days in seconds
+        max_age=60 * 60 * 24 * 30,  # 30 days
         httponly=True,
-        samesite='Lax',
+        samesite=samesite,
         secure=is_secure,
     )
+    # Also expose the token in a response header so the frontend can store it
+    # in localStorage as a reliable fallback and send it back via X-Guest-Token.
+    response['X-Guest-Token'] = str(token)
 
 
 class CartDetailView(APIView):
@@ -42,11 +61,13 @@ class CartDetailView(APIView):
             cart = get_cart_with_items(request.user)
             if not cart:
                 cart = get_or_create_auth_cart(request.user)
+            serializer = CartSerializer(cart)
+            return success_response(data=serializer.data)
         else:
             guest_token = _get_guest_token(request)
             cart = get_guest_cart_with_items(guest_token)
             if not cart:
-                # Return an empty cart placeholder without persisting it
+                # No cart found — return an empty placeholder without persisting
                 return success_response(data={
                     "id": None,
                     "items": [],
@@ -56,8 +77,12 @@ class CartDetailView(APIView):
                     "is_guest": True,
                 })
 
-        serializer = CartSerializer(cart)
-        return success_response(data=serializer.data)
+            serializer = CartSerializer(cart)
+            response = success_response(data=serializer.data)
+            # Always re-stamp the cookie and header on every GET so the browser
+            # keeps a fresh copy of the token even if it was previously lost.
+            _set_guest_cookie(response, str(cart.guest_token))
+            return response
 
 
 class CartItemAddView(APIView):
@@ -77,7 +102,7 @@ class CartItemAddView(APIView):
                 variant_id=str(variant_id),
                 quantity=quantity
             )
-            response = success_response(
+            return success_response(
                 data=CartItemSerializer(cart_item).data,
                 message="Item added to cart",
                 status_code=status.HTTP_201_CREATED
@@ -94,11 +119,12 @@ class CartItemAddView(APIView):
                 message="Item added to cart",
                 status_code=status.HTTP_201_CREATED
             )
-            # Always set the cookie back in case a new token was generated
-            if new_token != guest_token:
-                _set_guest_cookie(response, new_token)
-
-        return response
+            # Always set cookie + header — whether the token is new or existing.
+            # Previously this was guarded by `if new_token != guest_token` which
+            # meant the cookie was NEVER set when the browser already had one,
+            # causing the cart to go missing when cookies were dropped cross-origin.
+            _set_guest_cookie(response, new_token)
+            return response
 
 
 class CartItemDetailView(APIView):
