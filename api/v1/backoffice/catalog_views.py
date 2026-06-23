@@ -100,7 +100,9 @@ class AdminProductView(APIView):
             sleeve=request.data.get('sleeve', ''),
             length=request.data.get('length', ''),
             neck_line=request.data.get('neck_line', ''),
-            fit=request.data.get('fit', '')
+            fit=request.data.get('fit', ''),
+            processing_days_min=int(request.data.get('processing_days_min', 0) or 0),
+            processing_days_max=int(request.data.get('processing_days_max', 0) or 0)
         )
         
         # Handle variants and inventory
@@ -181,7 +183,9 @@ class AdminProductDetailView(APIView):
             sleeve=request.data.get('sleeve', product.sleeve),
             length=request.data.get('length', product.length),
             neck_line=request.data.get('neck_line', product.neck_line),
-            fit=request.data.get('fit', product.fit)
+            fit=request.data.get('fit', product.fit),
+            processing_days_min=int(request.data.get('processing_days_min', product.processing_days_min) or 0),
+            processing_days_max=int(request.data.get('processing_days_max', product.processing_days_max) or 0)
         )
 
         # Handle variants update

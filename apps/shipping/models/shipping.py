@@ -45,7 +45,25 @@ class ShippingRule(BaseModel):
 
     # Pricing
     shipping_fee = models.DecimalField(max_digits=10, decimal_places=2)
-    estimated_days = models.CharField(max_length=50, blank=True, default='3-5 Business Days')
+    
+    # Delivery Time (transit only)
+    # Phase 1: Separating Transit Time from Product Processing Time
+    transit_days_min = models.PositiveIntegerField(
+        default=3, 
+        help_text="Minimum days for transit (excluding processing time)."
+    )
+    transit_days_max = models.PositiveIntegerField(
+        default=5, 
+        help_text="Maximum days for transit (excluding processing time)."
+    )
+    
+    # Backward Compatibility: legacy field used by current frontend
+    estimated_days = models.CharField(
+        max_length=50, 
+        blank=True, 
+        default='3-5 Business Days',
+        help_text="Legacy display string (Source of truth for Phase 1)."
+    )
 
     # Rule Metadata
     priority = models.PositiveIntegerField(

@@ -30,6 +30,7 @@ class Promotion(BaseModel):
     TYPE_CHOICES = (
         ('BANNER', 'Visual Banner'),
         ('CAMPAIGN', 'Marketing Campaign'),
+        ('SYSTEM', 'System Automated'),
         ('EXCLUSIVE', 'System Exclusive'),
     )
     promotion_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='CAMPAIGN')

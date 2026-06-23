@@ -9,14 +9,16 @@ from .models.shipping import ShippingRule
 class ShippingRuleSerializer(serializers.ModelSerializer):
     """
     Full CRUD serializer for the Admin panel.
-    Used for both listing all rules and creating/updating a single rule.
+    Updated to include granular transit day components.
     """
     class Meta:
         model = ShippingRule
         fields = [
             'id', 'title',
             'province', 'district', 'city_or_municipality',
-            'shipping_fee', 'estimated_days',
+            'shipping_fee', 
+            'transit_days_min', 'transit_days_max', # New granular fields
+            'estimated_days', # Descriptive string (Backward compatibility)
             'priority', 'is_default', 'is_active',
             'created_at', 'updated_at'
         ]
@@ -51,20 +53,38 @@ class ShippingRuleSerializer(serializers.ModelSerializer):
 
 class ShippingCalculationRequestSerializer(serializers.Serializer):
     """
-    Validates the address data sent by the frontend (extracted from Google Places).
-    All geo fields are optional because the backend has hierarchical fallback.
+    Validates the address data sent by the frontend.
+    Updated to accept product IDs to calculate combined delivery ETA.
     """
     province = serializers.CharField(required=False, allow_blank=True, default='')
     district = serializers.CharField(required=False, allow_blank=True, default='')
     city = serializers.CharField(required=False, allow_blank=True, default='')
     order_total = serializers.DecimalField(max_digits=12, decimal_places=2)
+    
+    # New: Allow frontend to pass product IDs in the cart
+    product_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        required=False,
+        default=list
+    )
 
 
 class ShippingCalculationResponseSerializer(serializers.Serializer):
     """
     Formats the shipping result returned to the user during checkout.
+    Updated with aggregate delivery data (Product + Shipping).
     """
     rule_id = serializers.CharField()
     title = serializers.CharField()
     fee = serializers.DecimalField(max_digits=10, decimal_places=2)
+    
+    # Combined Summary (The "True" arrival date)
+    arrival_estimate = serializers.CharField(required=False)
+    
+    # Granular components
+    transit_days_min = serializers.IntegerField(read_only=True)
+    transit_days_max = serializers.IntegerField(read_only=True)
+    processing_days_max = serializers.IntegerField(read_only=True) # Max lag from cart
+    
+    # Original field (Stays for backward compatibility)
     estimated_days = serializers.CharField()

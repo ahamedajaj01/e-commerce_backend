@@ -51,6 +51,17 @@ class Product(BaseModel):
     neck_line = models.CharField(max_length=100, blank=True)
     fit = models.CharField(max_length=100, blank=True)
     
+    # Fulfillment Metadata
+    # Phase 1: Preparing for Product-level processing time
+    processing_days_min = models.PositiveIntegerField(
+        default=0, 
+        help_text="Minimum days to process order for this product."
+    )
+    processing_days_max = models.PositiveIntegerField(
+        default=0, 
+        help_text="Maximum days to process order for this product."
+    )
+    
     is_featured = models.BooleanField(default=False)
     is_new = models.BooleanField(default=False)
     is_trending = models.BooleanField(default=False)

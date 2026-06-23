@@ -1,24 +1,40 @@
 from decimal import Decimal
-from typing import List, Optional
+from typing import Optional
 from ..models.shipping import ShippingRule
 
 
 class ShippingCalculationResult:
-    """Simple data container for a shipping option returned to the storefront."""
-    def __init__(self, rule_id: str, title: str, fee: Decimal, estimated_days: str):
+    """
+    Data container for a shipping option returned to the storefront.
+    Focuses exclusively on shipping-related fee and transit time.
+    """
+    def __init__(
+        self, 
+        rule_id: str, 
+        title: str, 
+        fee: Decimal, 
+        estimated_days: str,
+        transit_days_min: int = 0,
+        transit_days_max: int = 0
+    ):
         self.rule_id = rule_id
         self.title = title
         self.fee = fee
         self.estimated_days = estimated_days
+        self.transit_days_min = transit_days_min
+        self.transit_days_max = transit_days_max
 
 
 class ShippingService:
     """
-    Stateless service that calculates shipping fees.
-
-    Currently uses the Manual (database-driven) provider.
-    Future: detect active courier API providers (Pathao, Aramex) from ShippingProvider
-    table and delegate to their respective API clients.
+    Stateless service that calculates shipping fees and identifies transit time.
+    
+    This service is strictly responsible for shipping domain concerns:
+    - Location matching
+    - Fee calculation
+    - Transit time retrieval (courier journey)
+    
+    It has no awareness of product processing times or cart contents.
     """
 
     @staticmethod
@@ -39,11 +55,14 @@ class ShippingService:
         if not rule:
             return None
 
+        # Return granular transit data alongside legacy string
         return ShippingCalculationResult(
             rule_id=str(rule.id),
             title=rule.title,
             fee=rule.shipping_fee,
-            estimated_days=rule.estimated_days
+            estimated_days=rule.estimated_days,
+            transit_days_min=rule.transit_days_min,
+            transit_days_max=rule.transit_days_max
         )
 
     # ------------------------------------------------------------------

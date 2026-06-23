@@ -62,6 +62,7 @@ class ProductStorefrontSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'slug', 'description', 'base_price', 'category', 
             'material', 'sleeve', 'length', 'neck_line', 'fit',
+            'processing_days_min', 'processing_days_max', # Additive fields
             'is_visible', 'variants', 'media'
         ]
 
@@ -78,6 +79,7 @@ class ProductBackofficeSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'slug', 'description', 'base_price', 'category', 'category_detail',
             'material', 'sleeve', 'length', 'neck_line', 'fit',
+            'processing_days_min', 'processing_days_max', # Admin fields
             'is_active', 'is_visible', 'variants', 'media', 'created_at'
         ]
 
