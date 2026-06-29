@@ -83,9 +83,15 @@ class ProductVariant(BaseModel):
         related_name='variants'
     )
     sku = models.CharField(max_length=100, unique=True)
-    name = models.CharField(max_length=255, blank=True) # e.g. "Red / XL"
+    name = models.CharField(max_length=255, blank=True) # e.g. "White Sary / XL"
     size = models.CharField(max_length=255, blank=True)
-    color = models.CharField(max_length=255, blank=True)
+    image = models.ForeignKey(
+        'catalog.ProductMedia', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='variants'
+    )
     price = models.DecimalField(max_digits=12, decimal_places=2)
     stock_quantity = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)

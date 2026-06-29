@@ -14,6 +14,14 @@ class CartItem(BaseModel):
         on_delete=models.CASCADE,
         related_name='cart_items'
     )
+    selected_media = models.ForeignKey(
+        'catalog.ProductMedia',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+',
+        help_text="The specific product image the customer selected"
+    )
     quantity = models.PositiveIntegerField(default=1)
 
     class Meta:

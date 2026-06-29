@@ -6,20 +6,33 @@ from apps.catalog.api.serializers import ProductVariantSerializer, ProductMediaS
 class CartItemSerializer(serializers.ModelSerializer):
     variant = ProductVariantSerializer(read_only=True)
     product_name = serializers.CharField(source='variant.product.name', read_only=True)
-    thumbnail = serializers.SerializerMethodField()
+    selected_image_url = serializers.SerializerMethodField()
     subtotal = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
     class Meta:
         model = CartItem
-        fields = ['id', 'variant', 'product_name', 'thumbnail', 'quantity', 'subtotal']
+        fields = ['id', 'variant', 'product_name', 'selected_image_url', 'quantity', 'subtotal']
 
-    def get_thumbnail(self, obj):
-        # We rely on the selector prefetching variant__product__media correctly
+    def get_selected_image_url(self, obj):
+        # Priority 1: user-selected image
+        if obj.selected_media and obj.selected_media.file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.selected_media.file.url)
+            return obj.selected_media.file.url
+        # Priority 2: variant's default linked image
+        if obj.variant and obj.variant.image and obj.variant.image.file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.variant.image.file.url)
+            return obj.variant.image.file.url
+        # Priority 3: first product media
         try:
-            # Avoid .first() which might trigger a new query; use indexing on the prefetched list
             media_list = list(obj.variant.product.media.all())
             if media_list:
-                return media_list[0].file.url
+                request = self.context.get('request')
+                url = media_list[0].file.url
+                return request.build_absolute_uri(url) if request else url
         except (AttributeError, IndexError):
             pass
         return None
@@ -43,6 +56,7 @@ class CartSerializer(serializers.ModelSerializer):
 class AddToCartSerializer(serializers.Serializer):
     variant_id = serializers.UUIDField()
     quantity = serializers.IntegerField(min_value=1, default=1)
+    media_id = serializers.UUIDField(required=False, allow_null=True)
 
 class UpdateCartItemSerializer(serializers.Serializer):
     quantity = serializers.IntegerField(min_value=0) # 0 means remove

@@ -95,15 +95,17 @@ class CartItemAddView(APIView):
 
         variant_id = serializer.validated_data['variant_id']
         quantity = serializer.validated_data['quantity']
+        media_id = str(serializer.validated_data['media_id']) if serializer.validated_data.get('media_id') else None
 
         if request.user.is_authenticated:
             cart_item = add_to_cart_authenticated(
                 user=request.user,
                 variant_id=str(variant_id),
-                quantity=quantity
+                quantity=quantity,
+                media_id=media_id
             )
             return success_response(
-                data=CartItemSerializer(cart_item).data,
+                data=CartItemSerializer(cart_item, context={'request': request}).data,
                 message="Item added to cart",
                 status_code=status.HTTP_201_CREATED
             )
@@ -112,17 +114,14 @@ class CartItemAddView(APIView):
             cart_item, new_token = add_to_cart_guest(
                 guest_token=guest_token,
                 variant_id=str(variant_id),
-                quantity=quantity
+                quantity=quantity,
+                media_id=media_id
             )
             response = success_response(
-                data=CartItemSerializer(cart_item).data,
+                data=CartItemSerializer(cart_item, context={'request': request}).data,
                 message="Item added to cart",
                 status_code=status.HTTP_201_CREATED
             )
-            # Always set cookie + header — whether the token is new or existing.
-            # Previously this was guarded by `if new_token != guest_token` which
-            # meant the cookie was NEVER set when the browser already had one,
-            # causing the cart to go missing when cookies were dropped cross-origin.
             _set_guest_cookie(response, new_token)
             return response
 

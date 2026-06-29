@@ -18,13 +18,13 @@ def create_product(*, name: str, category_id: int = None, description: str = "",
     return Product.objects.create(name=name, category_id=category_id, description=description, **kwargs)
 
 @transaction.atomic
-def create_variant(*, product: Product, sku: str, price: float, size: str = "", color: str = "", stock_quantity: int = 0) -> ProductVariant:
+def create_variant(*, product: Product, sku: str, price: float, size: str = "", image_id: str = None, stock_quantity: int = 0) -> ProductVariant:
     return ProductVariant.objects.create(
         product=product, 
         sku=sku, 
         price=price, 
         size=size, 
-        color=color,
+        image_id=image_id,
         stock_quantity=stock_quantity
     )
 

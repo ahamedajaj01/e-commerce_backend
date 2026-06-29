@@ -120,7 +120,7 @@ class AdminProductView(APIView):
                     sku=var.get('sku', ''),
                     price=var.get('price', 0.0),
                     size=var.get('size', ''),
-                    color=var.get('color', ''),
+                    image_id=var.get('image_id') or var.get('image'),
                     stock_quantity=stock_qty
                 )
         except Exception as e:
@@ -225,7 +225,7 @@ class AdminProductDetailView(APIView):
                             variant_obj.sku = var_data.get('sku', variant_obj.sku)
                             variant_obj.price = var_data.get('price', variant_obj.price)
                             variant_obj.size = var_data.get('size', variant_obj.size)
-                            variant_obj.color = var_data.get('color', variant_obj.color)
+                            variant_obj.image_id = var_data.get('image_id') or var_data.get('image') or variant_obj.image_id
                             if 'stock_quantity' in var_data:
                                 variant_obj.stock_quantity = int(var_data['stock_quantity'] or 0)
                             variant_obj.save()
@@ -238,7 +238,7 @@ class AdminProductDetailView(APIView):
                             sku=var_data.get('sku', ''),
                             price=var_data.get('price', 0.0),
                             size=var_data.get('size', ''),
-                            color=var_data.get('color', ''),
+                            image_id=var_data.get('image_id') or var_data.get('image'),
                             stock_quantity=int(var_data.get('stock_quantity', 0))
                         )
             except (json.JSONDecodeError, TypeError, ValueError):

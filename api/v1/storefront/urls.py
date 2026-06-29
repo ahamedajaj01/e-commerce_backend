@@ -28,7 +28,13 @@ urlpatterns = [
     # Cart
     path('cart/', include('apps.cart.api.storefront.urls', namespace='cart')),
 
+    # Payments
+    path('payments/', include('apps.payments.api.storefront.urls', namespace='payments-storefront')),
+
     # Shipping
     path('shipping/calculate/', ShippingFeeCalculationView.as_view(), name='shipping-calculate'),
     path('shipping/calculate', ShippingFeeCalculationView.as_view()),
+
+    # Orders
+    path('orders/', include('apps.orders.api.storefront.urls', namespace='orders')),
 ]

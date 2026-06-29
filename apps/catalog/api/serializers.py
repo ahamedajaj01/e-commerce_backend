@@ -48,9 +48,19 @@ class ProductMediaSerializer(serializers.ModelSerializer):
 
 
 class ProductVariantSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = ProductVariant
-        fields = ['id', 'sku', 'name', 'size', 'color', 'price', 'stock_quantity']
+        fields = ['id', 'sku', 'name', 'size', 'image', 'image_url', 'price', 'stock_quantity']
+
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.file.url)
+            return obj.image.file.url
+        return None
 
 class ProductStorefrontSerializer(serializers.ModelSerializer):
     variants = ProductVariantSerializer(many=True, read_only=True)

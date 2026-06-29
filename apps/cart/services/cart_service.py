@@ -64,22 +64,21 @@ def get_or_create_guest_cart(guest_token: str = None) -> tuple[Cart, str]:
 # ---------------------------------------------------------------------------
 
 @transaction.atomic
-def add_to_cart_authenticated(*, user: User, variant_id: str, quantity: int = 1) -> CartItem:
+def add_to_cart_authenticated(*, user: User, variant_id: str, quantity: int = 1, media_id: str = None) -> CartItem:
     cart = get_or_create_auth_cart(user)
-    return _add_item_to_cart(cart=cart, variant_id=variant_id, quantity=quantity)
+    return _add_item_to_cart(cart=cart, variant_id=variant_id, quantity=quantity, media_id=media_id)
 
 
 @transaction.atomic
-def add_to_cart_guest(*, guest_token: str = None, variant_id: str, quantity: int = 1) -> tuple[CartItem, str]:
+def add_to_cart_guest(*, guest_token: str = None, variant_id: str, quantity: int = 1, media_id: str = None) -> tuple[CartItem, str]:
     cart, token = get_or_create_guest_cart(guest_token)
-    item = _add_item_to_cart(cart=cart, variant_id=variant_id, quantity=quantity)
+    item = _add_item_to_cart(cart=cart, variant_id=variant_id, quantity=quantity, media_id=media_id)
     return item, token
 
 
-def _add_item_to_cart(*, cart: Cart, variant_id: str, quantity: int) -> CartItem:
+def _add_item_to_cart(*, cart: Cart, variant_id: str, quantity: int, media_id: str = None) -> CartItem:
     """Optimized internal logic to save round-trips to Supabase."""
     # 1. Combined lookup: Check variant existence and stock in one trip
-    # We also select_related the product to help with serialization later
     try:
         variant = ProductVariant.objects.select_related('product').get(id=variant_id, is_active=True)
     except ProductVariant.DoesNotExist:
@@ -88,12 +87,17 @@ def _add_item_to_cart(*, cart: Cart, variant_id: str, quantity: int) -> CartItem
     if variant.stock_quantity < quantity:
         raise InsufficientStockException()
 
-    # 2. Optimized Check + Update
-    # Using select_related('variant') here ensures serialization of the return value is fast
+    # 2. Resolve selected media
+    selected_media = None
+    if media_id:
+        from apps.catalog.models.product import ProductMedia
+        selected_media = ProductMedia.objects.filter(id=media_id, product=variant.product).first()
+
+    # 3. Optimized Check + Update
     cart_item, created = CartItem.objects.get_or_create(
         cart=cart, 
         variant=variant,
-        defaults={'quantity': quantity}
+        defaults={'quantity': quantity, 'selected_media': selected_media}
     )
     
     if not created:
@@ -101,7 +105,10 @@ def _add_item_to_cart(*, cart: Cart, variant_id: str, quantity: int) -> CartItem
         if variant.stock_quantity < new_quantity:
             raise InsufficientStockException()
         cart_item.quantity = new_quantity
-        cart_item.save(update_fields=['quantity'])
+        # Update selected image if user re-adds with a different one
+        if selected_media:
+            cart_item.selected_media = selected_media
+        cart_item.save(update_fields=['quantity', 'selected_media'])
 
     return cart_item
 

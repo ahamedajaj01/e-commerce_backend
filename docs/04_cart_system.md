@@ -42,7 +42,7 @@ All cart endpoints accept both **authenticated** (via `Authorization: Bearer <to
 
 ### 1. Retrieve Cart
 
-Fetches the current active cart with all items, subtotals, and media.
+Fetches the current active cart with all items, subtotals, and selected images.
 
 - **Endpoint:** `GET /api/v1/storefront/cart/`
 - **Auth:** Optional (JWT or cookie)
@@ -57,15 +57,24 @@ Fetches the current active cart with all items, subtotals, and media.
           "items": [
               {
                   "id": "uuid",
-                  "variant": { "id": "uuid", "sku": "...", "price": "500.00", "stock_quantity": 20 },
-                  "product_name": "Silk Sari",
-                  "thumbnail": "/media/products/media/img.jpg",
-                  "quantity": 2,
-                  "subtotal": "1000.00"
+                  "variant": {
+                      "id": "uuid",
+                      "sku": "KRT-WHT-M",
+                      "name": "White / M",
+                      "size": "M",
+                      "image": "uuid-of-linked-media",
+                      "image_url": "http://localhost:8000/media/products/media/white.jpg",
+                      "price": "3500.00",
+                      "stock_quantity": 5
+                  },
+                  "product_name": "Kurti",
+                  "selected_image_url": "http://localhost:8000/media/products/media/white.jpg",
+                  "quantity": 1,
+                  "subtotal": "3500.00"
               }
           ],
-          "total_quantity": 2,
-          "total_price": "1000.00"
+          "total_quantity": 1,
+          "total_price": "3500.00"
       }
   }
   ```
@@ -73,14 +82,20 @@ Fetches the current active cart with all items, subtotals, and media.
 
 ### 2. Add to Cart
 
-Adds a specific variant to the cart.
+Adds a specific variant + the user-selected image to the cart.
 
 - **Endpoint:** `POST /api/v1/storefront/cart/items`
 - **Auth:** Optional
 - **Payload:**
   ```json
-  { "variant_id": "uuid", "quantity": 1 }
+  {
+    "variant_id": "uuid-of-variant",
+    "media_id": "uuid-of-selected-productmedia",
+    "quantity": 1
+  }
   ```
+  > `media_id` is **optional but recommended**. It is the `id` of the `ProductMedia` object the user clicked on the product gallery. This image is stored permanently in the order.
+  
 - **Guest Behavior:** If no `guest_cart_token` cookie exists, one is **set in the response** automatically.
 
 ### 3. Update Quantity
@@ -119,14 +134,15 @@ When a user logs in (`POST /api/v1/auth/login/`):
 4. **Error Codes:**
    - `INSUFFICIENT_STOCK`: Requested quantity exceeds current stock.
    - `VARIANT_NOT_AVAILABLE`: Variant is deactivated or doesn't exist.
+5. **Image Selection:** The `selected_media` FK on `CartItem` stores which gallery image the user clicked. This is forwarded to `OrderItem.variant_image` at order-placement time. If not provided, falls back to the variant's default linked image.
 
 ---
 
 ## Frontend Integration Guide
 
 1. **On App Load:** Call `GET /cart/` — if the user is authenticated, send the JWT. If guest, the browser sends the cookie automatically. Use `is_guest` in the response to decide whether to show a "Login to save your cart" prompt.
-2. **Add to Cart (Guest):** Just call `POST /cart/items` normally. The browser will automatically store and re-send the `guest_cart_token` HttpOnly cookie on all future requests.
+2. **Add to Cart:** On the product page, capture which gallery `media_id` the user currently has selected. Send both `variant_id` + `media_id` in the add-to-cart payload.
 3. **On Login:** After receiving the JWT, no extra merge call is needed. The backend handles merge internally. Just refetch `GET /cart/` to get the merged cart state.
 4. **Optimistic Updates:** Update the UI immediately on add/update. Revert if the server returns `INSUFFICIENT_STOCK`.
 5. **Cart Badge:** Use `total_quantity` from `GET /cart/` for the header badge count.
-6. **Product Thumbnails:** Use the `thumbnail` field in each cart item for the cart drawer/sidebar list.
+6. **Product Image:** Use `selected_image_url` in each cart item — it returns the exact photo the user picked.

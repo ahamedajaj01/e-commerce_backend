@@ -24,6 +24,6 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(ProductVariant)
 class ProductVariantAdmin(admin.ModelAdmin):
-    list_display = ('sku', 'product', 'price', 'size', 'color', 'is_active')
-    list_filter = ('is_active', 'size', 'color')
+    list_display = ('sku', 'product', 'price', 'size', 'image', 'is_active')
+    list_filter = ('is_active', 'size')
     search_fields = ('sku', 'product__name')

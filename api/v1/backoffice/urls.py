@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from .catalog_views import (
     AdminProductView, AdminProductDetailView, 
     AdminCategoryView, AdminCategoryDetailView,
@@ -16,6 +16,7 @@ from .cms_views import (
     AdminHomepageSectionDetailView,
     AdminPromotionView,
     AdminPromotionDetailView,
+    AdminPromotionView, # Duplicate removed below
     AdminCollectionView
 )
 
@@ -59,4 +60,13 @@ urlpatterns = [
     path('shipping/rules/', AdminShippingRuleListView.as_view(), name='admin-shipping-rule-list'),
     path('shipping/rules/<uuid:pk>/', AdminShippingRuleDetailView.as_view(), name='admin-shipping-rule-detail'),
     path('shipping/rules/<uuid:pk>/toggle/', AdminShippingRuleToggleView.as_view(), name='admin-shipping-rule-toggle'),
+
+    # Orders
+    path('orders/', include('apps.orders.api.backoffice.urls', namespace='orders')),
+    
+    # Payments
+    path('payments/', include('apps.payments.api.backoffice.urls', namespace='payments')),
+
+    # Analytics & Dashboard
+    path('analytics/', include('apps.analytics.api.backoffice.urls', namespace='analytics')),
 ]
