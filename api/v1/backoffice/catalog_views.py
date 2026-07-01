@@ -1,6 +1,9 @@
+import logging
 from rest_framework.views import APIView
 from rest_framework import status
 from core.common.responses.formatters import success_response, error_response
+
+logger = logging.getLogger(__name__)
 from apps.users.permissions import IsBackofficeStaff
 from apps.catalog.selectors.product_selectors import get_backoffice_products, get_active_categories
 from apps.catalog.services.product_services import create_product, create_category
@@ -192,6 +195,8 @@ class AdminProductDetailView(APIView):
         import json
         from apps.catalog.services.product_services import create_variant
         variants_raw = request.data.get('variants')
+        # ── DIAGNOSTIC LOG (remove after bug is confirmed fixed) ──────────────
+        logger.warning("[PATCH variants] type=%s raw=%r", type(variants_raw).__name__, variants_raw)
         if variants_raw is not None:
             try:
                 if isinstance(variants_raw, str):
