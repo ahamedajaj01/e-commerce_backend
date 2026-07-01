@@ -223,23 +223,32 @@ class AdminProductDetailView(APIView):
                         try:
                             variant_obj = ProductVariant.objects.get(id=var_id, product=updated_product)
                             variant_obj.sku = var_data.get('sku', variant_obj.sku)
+                            variant_obj.name = var_data.get('name', variant_obj.name)
                             variant_obj.price = var_data.get('price', variant_obj.price)
                             variant_obj.size = var_data.get('size', variant_obj.size)
-                            variant_obj.image_id = var_data.get('image_id') or var_data.get('image') or variant_obj.image_id
+                            # Only update image_id if a new value is explicitly provided
+                            new_image_id = var_data.get('image_id') or var_data.get('image')
+                            if new_image_id is not None:
+                                variant_obj.image_id = new_image_id
+                            # Safely update stock_quantity: respect any sent value (including 0),
+                            # but only when the key is actually present in the payload.
                             if 'stock_quantity' in var_data:
-                                variant_obj.stock_quantity = int(var_data['stock_quantity'] or 0)
+                                raw_qty = var_data['stock_quantity']
+                                # Treat None / empty-string as 0; otherwise convert to int
+                                variant_obj.stock_quantity = int(raw_qty) if raw_qty not in (None, '', 'null') else 0
                             variant_obj.save()
                         except ProductVariant.DoesNotExist:
                             pass
                     else:
                         # New variant addition during edit
+                        raw_qty = var_data.get('stock_quantity', 0)
                         create_variant(
                             product=updated_product,
                             sku=var_data.get('sku', ''),
                             price=var_data.get('price', 0.0),
                             size=var_data.get('size', ''),
                             image_id=var_data.get('image_id') or var_data.get('image'),
-                            stock_quantity=int(var_data.get('stock_quantity', 0))
+                            stock_quantity=int(raw_qty) if raw_qty not in (None, '', 'null') else 0
                         )
             except (json.JSONDecodeError, TypeError, ValueError):
                 pass # Silently fail for malformed JSON/Data in MVP context
