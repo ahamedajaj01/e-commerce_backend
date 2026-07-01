@@ -1,9 +1,7 @@
-import logging
 from rest_framework.views import APIView
 from rest_framework import status
 from core.common.responses.formatters import success_response, error_response
 
-logger = logging.getLogger(__name__)
 from apps.users.permissions import IsBackofficeStaff
 from apps.catalog.selectors.product_selectors import get_backoffice_products, get_active_categories
 from apps.catalog.services.product_services import create_product, create_category
@@ -195,68 +193,60 @@ class AdminProductDetailView(APIView):
         import json
         from apps.catalog.services.product_services import create_variant
         variants_raw = request.data.get('variants')
-        # ── DIAGNOSTIC LOG (remove after bug is confirmed fixed) ──────────────
-        logger.warning("[PATCH variants] type=%s raw=%r", type(variants_raw).__name__, variants_raw)
         if variants_raw is not None:
-            try:
-                if isinstance(variants_raw, str):
-                    variants_list = json.loads(variants_raw)
+            if isinstance(variants_raw, str):
+                variants_list = json.loads(variants_raw)
+            else:
+                variants_list = variants_raw
+
+            # Track IDs provided in the request to identify which to KEEP
+            # We filter only for valid UUIDs to ensure we don't try to match temporary frontend IDs
+            import uuid
+            incoming_ids = []
+            for v in variants_list:
+                v_id = v.get('id')
+                if v_id:
+                    try:
+                        # Verify it's a valid ID (not a frontend temp UUID)
+                        incoming_ids.append(uuid.UUID(str(v_id)))
+                    except (ValueError, TypeError):
+                        continue
+
+            # DELETE variants that belong to this product but are NOT in the incoming list
+            from apps.catalog.models.product import ProductVariant
+            ProductVariant.objects.filter(product=updated_product).exclude(id__in=incoming_ids).delete()
+
+            for var_data in variants_list:
+                var_id = var_data.get('id')
+                if var_id:
+                    # Update existing variant
+                    variant_obj = ProductVariant.objects.get(id=var_id, product=updated_product)
+                    variant_obj.sku = var_data.get('sku', variant_obj.sku)
+                    variant_obj.name = var_data.get('name', variant_obj.name)
+                    variant_obj.price = var_data.get('price', variant_obj.price)
+                    variant_obj.size = var_data.get('size', variant_obj.size)
+                    # Only update image_id if a new value is explicitly provided
+                    new_image_id = var_data.get('image_id') or var_data.get('image')
+                    if new_image_id is not None:
+                        variant_obj.image_id = new_image_id
+                    
+                    # Note: We do *not* directly update variant_obj.stock_quantity here for existing variants.
+                    # The frontend computes a stock adjustment delta and calls `/api/v1/backoffice/inventory/adjust/`
+                    # to apply adjustments and create StockMovement logs for auditing. Direct updates here would
+                    # cause delta updates to apply twice.
+                    
+                    variant_obj.save()
                 else:
-                    variants_list = variants_raw
-
-                # Track IDs provided in the request to identify which to KEEP
-                # We filter only for valid UUIDs to ensure we don't try to match temporary frontend IDs
-                import uuid
-                incoming_ids = []
-                for v in variants_list:
-                    v_id = v.get('id')
-                    if v_id:
-                        try:
-                            # Verify it's a valid ID (not a frontend temp UUID)
-                            incoming_ids.append(uuid.UUID(str(v_id)))
-                        except (ValueError, TypeError):
-                            continue
-
-                # DELETE variants that belong to this product but are NOT in the incoming list
-                from apps.catalog.models.product import ProductVariant
-                ProductVariant.objects.filter(product=updated_product).exclude(id__in=incoming_ids).delete()
-
-                for var_data in variants_list:
-                    var_id = var_data.get('id')
-                    if var_id:
-                        # Update existing variant
-                        try:
-                            variant_obj = ProductVariant.objects.get(id=var_id, product=updated_product)
-                            variant_obj.sku = var_data.get('sku', variant_obj.sku)
-                            variant_obj.name = var_data.get('name', variant_obj.name)
-                            variant_obj.price = var_data.get('price', variant_obj.price)
-                            variant_obj.size = var_data.get('size', variant_obj.size)
-                            # Only update image_id if a new value is explicitly provided
-                            new_image_id = var_data.get('image_id') or var_data.get('image')
-                            if new_image_id is not None:
-                                variant_obj.image_id = new_image_id
-                            # Safely update stock_quantity: respect any sent value (including 0),
-                            # but only when the key is actually present in the payload.
-                            if 'stock_quantity' in var_data:
-                                raw_qty = var_data['stock_quantity']
-                                # Treat None / empty-string as 0; otherwise convert to int
-                                variant_obj.stock_quantity = int(raw_qty) if raw_qty not in (None, '', 'null') else 0
-                            variant_obj.save()
-                        except ProductVariant.DoesNotExist:
-                            pass
-                    else:
-                        # New variant addition during edit
-                        raw_qty = var_data.get('stock_quantity', 0)
-                        create_variant(
-                            product=updated_product,
-                            sku=var_data.get('sku', ''),
-                            price=var_data.get('price', 0.0),
-                            size=var_data.get('size', ''),
-                            image_id=var_data.get('image_id') or var_data.get('image'),
-                            stock_quantity=int(raw_qty) if raw_qty not in (None, '', 'null') else 0
-                        )
-            except (json.JSONDecodeError, TypeError, ValueError):
-                pass # Silently fail for malformed JSON/Data in MVP context
+                    # New variant addition during edit (does not have a backendId yet)
+                    raw_qty = var_data.get('stock_quantity', 0)
+                    create_variant(
+                        product=updated_product,
+                        sku=var_data.get('sku', ''),
+                        price=var_data.get('price', 0.0),
+                        size=var_data.get('size', ''),
+                        image_id=var_data.get('image_id') or var_data.get('image'),
+                        stock_quantity=int(raw_qty) if raw_qty not in (None, '', 'null') else 0
+                    )
 
         from apps.catalog.services.product_services import add_product_media
         main_image = request.FILES.get('image')
@@ -269,7 +259,11 @@ class AdminProductDetailView(APIView):
         for idx, img_file in enumerate(additional_images, start=current_media_count + 1):
             add_product_media(product=updated_product, file=img_file, sort_order=idx)
 
-        return success_response(data=ProductBackofficeSerializer(updated_product, context={'request': request}).data, message="Product updated")
+        # Re-fetch product fresh from DB to avoid stale ORM prefetch/cache on the
+        # in-memory object (which could make the response return pre-save variant data).
+        from apps.catalog.models.product import Product as _Product
+        fresh_product = _Product.objects.prefetch_related('variants', 'media').select_related('category', 'brand').get(id=product_id)
+        return success_response(data=ProductBackofficeSerializer(fresh_product, context={'request': request}).data, message="Product updated")
 
     def delete(self, request, product_id):
         from apps.catalog.models.product import Product

@@ -9,8 +9,6 @@ env/
 venv/
 
 # Local settings
-.env
-.env.*
 
 # SQLite database files
 *.sqlite3
@@ -28,7 +26,8 @@ staticfiles/
 htmlcov/
 
 # IDE and editor settings
-.vscode/
 *.swp
 *.swo
 .DS_Store
+config.bat
+node_modules
